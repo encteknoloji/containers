@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	defaultInterval    = 3     // Default check interval in seconds
+	defaultInterval    = 1     // Default check timeout in seconds
+	defaultTimeout    = 1     // Default check interval in seconds
 	defaultStatusCode  = http.StatusOK // Default expected status code
 	defaultSkipVerify   = false // Default to disabling insecure skips
 )
@@ -51,6 +52,23 @@ func main() {
 
 	intervalDuration := time.Duration(interval) * time.Second
 
+
+	timeoutStr := os.Getenv("CHECK_TIMEOUT") // Get the timeout from environment variable
+
+	var timeout int
+	var timeoutErr error
+	if timeoutStr == "" { // Use default if not set
+		timeout = defaultTimeout
+	} else {
+		timeout, timeoutErr = strconv.Atoi(timeoutStr) // Convert string to integer
+	}
+
+	if timeoutErr != nil || timeout <= 0 {
+		fmt.Println("Error: CHECK_TIMEOUT invalid (must be a positive integer).")
+		return
+	}
+	
+
 	statusCodeStr := os.Getenv("CHECK_STATUS_CODE") // Get the expected status code from environment variable
 
 	var expectedStatusCode int
@@ -89,12 +107,14 @@ func main() {
 
 	fmt.Printf("Using URL: %s\n", url)
 	fmt.Printf("Using interval: %d seconds\n", interval)
+	fmt.Printf("Using timeout: %d seconds\n", timeout)
 	fmt.Printf("Using expected status code: %d\n", expectedStatusCode)
 	fmt.Printf("using skip certificate verification: %s\n", skipVerifyStatus)
 	fmt.Println("")
 
 	// Create the HTTP client
 	client := &http.Client{
+		Timeout: 4 * time.Second,
 		Transport: &http.Transport{
 		  TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify},
 		},
